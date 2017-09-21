@@ -54,10 +54,14 @@ def solve(init_position, primitive, generate_moves, do_move):
     result for the player starting at init_position, assuming
     optimal strategy. Assumes the game is a 2-player, perfect
     information, abstract strategy game.
+
+    Currently only supports two results: 1. win 2. lose
     """
     # Cached positions, all of which is from the perspective of the current player
+    # Maps (position) -> (win/lose, remoteness)
     solved_positions = {}
 
+    # This function returns a (dwult, remoteness) tuple
     def solve_memoized(position, primitive, generate_moves, do_move, cache):
         # Return memoized soluton if it exists
         if position in cache:
@@ -74,10 +78,28 @@ def solve(init_position, primitive, generate_moves, do_move):
 
         # Check that it's possible to force next player to lose
         result = DWULT.LOSE
-        for next_result in all_next_results:
+        win_remoteness = float("inf")
+        lose_remoteness = -float("inf")
+        for next_result, remoteness in all_next_results:
             if next_result == DWULT.LOSE:
                 result = DWULT.WIN
-        return result
+                # Win as fast as possible
+                win_remoteness = min(win_remoteness, remoteness)
+            else:
+                # Lose as slow as possible
+                lose_remoteness = max(lose_remoteness, remoteness)
+        
+        if result == DWULT.WIN:
+            # No further moves from current game state
+            if win_remoteness == float("inf"):
+                win_remoteness = -1
+            return result, win_remoteness + 1
+        else:
+            # No further moves from current game state
+            if lose_remoteness == -float("inf"):
+                lose_remoteness = -1
+            return result, lose_remoteness + 1
+
 
     return solve_memoized(init_position, primitive, generate_moves, do_move, solved_positions)
 
